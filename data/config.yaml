@@ -1,4 +1,4 @@
-server:
+﻿server:
   cacheDir: /home/filebrowser/data/tmp
 
   sources:
@@ -30,7 +30,7 @@ auth:
   methods:
     password:
       enabled: true
-      signup: false      # ثبت‌نام آزاد خاموش است؛ ادمین کاربر می‌سازد
+      signup: true       # open registration enabled
       minLength: 10
 
 http:
