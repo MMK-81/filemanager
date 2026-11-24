@@ -1,0 +1,23 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Runtime state
+data/database.sqlite
+data/database.sqlite-*
+data/tmp/
+backups/
+
+# User data (created by setup.sh at deploy time)
+files/users/*
+!files/users/.gitkeep
+files/shared/*
+!files/shared/README.txt
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

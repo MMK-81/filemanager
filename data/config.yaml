@@ -1,0 +1,40 @@
+server:
+  cacheDir: /home/filebrowser/data/tmp
+
+  sources:
+    # ۱) پوشه‌ی شخصی هر کاربر: /data/users/<username>
+    #    هر کاربر فقط پوشه‌ی خودش را می‌بیند و پوشه‌ی والد برایش قابل مشاهده نیست.
+    - path: /data/users
+      name: "پوشه من"
+      config:
+        defaultEnabled: true
+        createUserDir: true
+
+    # ۲) پوشه‌ی مشترک بین همه‌ی کاربران
+    - path: /data/shared
+      name: "مشترک"
+      config:
+        defaultEnabled: true
+
+    # ۳) (اختیاری) دسترسی ادمین به همه‌ی پوشه‌های شخصی.
+    #     توجه: این مسیر روی /data/users و /data/shared قرار می‌گیرد و باعث
+    #     ایندکس تکراری می‌شود. فقط اگر لازم است از پنل مدیریت همه را ببینید
+    #     از کامنت خارج کنید و در Users → admin این source را به admin بدهید.
+    # - path: /data
+    #   name: "همه فایل‌ها (مدیر)"
+    #   config:
+    #     defaultEnabled: false
+
+auth:
+  adminUsername: admin
+  methods:
+    password:
+      enabled: true
+      signup: false      # ثبت‌نام آزاد خاموش است؛ ادمین کاربر می‌سازد
+      minLength: 10
+
+http:
+  port: 80
+  # با اجرای setup.sh به‌صورت خودکار با مقدار DOMAIN از .env جایگزین می‌شود
+  externalUrl: "https://files.darkfamily.ir"
+  trustProxyHeaders: true

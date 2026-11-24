@@ -1,0 +1,37 @@
+name: filemanager
+
+services:
+  filebrowser:
+    image: ghcr.io/gtsteffaniak/filebrowser:stable
+    restart: unless-stopped
+    environment:
+      FILEBROWSER_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      FILEBROWSER_JWT_TOKEN_SECRET: ${JWT_SECRET}
+      # برای فعال‌سازی ورود دو مرحله‌ای (2FA) این خط را از کامنت خارج کنید
+      # FILEBROWSER_TOTP_SECRET: ${TOTP_SECRET}
+    volumes:
+      - ./data:/home/filebrowser/data
+      # تمام فایلها (پوشههای کاربران + مشترک) روی یک فایل سیستم ۱۰ گیگابایتی مشترک است.
+      - ./files:/data
+    # هیچ پورتی روی هاست باز نمی‌شود؛ فقط Caddy از شبکه‌ی داخلی به آن وصل می‌شود.
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - filebrowser
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

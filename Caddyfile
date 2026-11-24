@@ -1,0 +1,96 @@
+{
+	email {$ACME_EMAIL}
+
+	# HTTP/1.1 + HTTP/2 + HTTP/3 صریح. Caddy به‌صورت پیش‌فرض هم هر سه را
+	# پشتیبانی می‌کند؛ این بلوک تضمین می‌کند بعد از تغییرات آینده خاموش نشود.
+	servers {
+		protocols h1 h2 h3
+		max_header_size 32KiB
+	}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# سقف حجم هر درخواست آپلود.
+	# آپلودها به‌صورت single-shot تنظیم شده‌اند (uploadChunkSizeMb=0)
+	# پس این محدودیت یعنی «هر فایل حداکثر ~۱ گیگابایت».
+	# 1100MB کمی بیشتر از ۱ گیگ است تا سربار هدرها جا شود.
+	request_body {
+		max_size 1100MB
+	}
+
+	# --- کش مرورگر برای فایل‌های ثابت ---
+	# فونت و باندل‌های JS در هر بازدید دوباره دانلود می‌شدند (فونت به‌تنهایی
+	# ۴۸ مگابایت در ۱۳ درخواست). باندل‌های هش‌دار immutable، فونت ۳۰ روز و
+	# بقیه‌ی static یک هفته کش می‌شوند.
+	# `defer` لازم است: FileBrowser خودش هم Cache-Control می‌فرستد و عملیات
+	# header معمولی قبل از پاسخ upstream اجرا می‌شود (هدر دوبل می‌شد).
+	@fbStaticOther {
+		path /public/static/*
+		not path /public/static/assets/* /public/static/fonts/*
+	}
+	@fbAssets path /public/static/assets/*
+	@fbFonts path /public/static/fonts/*
+	header @fbStaticOther {
+		defer
+		Cache-Control "public, max-age=604800"
+	}
+	header @fbAssets {
+		defer
+		Cache-Control "public, max-age=31536000, immutable"
+	}
+	header @fbFonts {
+		defer
+		Cache-Control "public, max-age=2592000"
+	}
+
+	# مسیرهای عمومی برای لینک‌های اشتراک (بدون نیاز به لاگین)
+	handle /public/* {
+		reverse_proxy filebrowser:80 {
+			header_up Host {host}
+			transport http {
+				read_buffer 64KiB
+				write_buffer 64KiB
+				keepalive 90s
+				keepalive_idle_conns 64
+				dial_timeout 5s
+				response_header_timeout 60s
+			}
+			lb_try_duration 5s
+			stream_close_delay 5m
+		}
+	}
+
+	# بقیه‌ی مسیرها (پنل، API، WebDAV)
+	handle {
+		reverse_proxy filebrowser:80 {
+			header_up Host {host}
+			transport http {
+				read_buffer 64KiB
+				write_buffer 64KiB
+				keepalive 90s
+				keepalive_idle_conns 64
+				dial_timeout 5s
+				response_header_timeout 60s
+			}
+			lb_try_duration 5s
+			stream_close_delay 5m
+		}
+	}
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+		format json
+	}
+}
